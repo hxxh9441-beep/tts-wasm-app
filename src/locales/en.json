@@ -46,7 +46,8 @@
     "voiceZain": "Zain — Calm Female",
     "voiceLessac": "Lessac — American English",
     "voiceCached": "Voice saved locally — works offline ⚡",
-    "voiceWillDownload": "This voice downloads on first use only (~60MB)"
+    "voiceWillDownload": "This voice downloads on first use only (~60MB)",
+    "engineTimeout": "Connection timed out (10s) — check your internet and retry"
   },
   "engine": {
     "modelsCached": "Voices saved — ready to work offline",

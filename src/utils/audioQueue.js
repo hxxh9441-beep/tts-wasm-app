@@ -127,11 +127,12 @@ export class AudioQueue {
     const { type, payload } = e.data || {}
     switch (type) {
       case 'status':
-        // تمرير حالة المحرك للمكوّن (التهيئة، التنزيل، الجهاز...)
-        this.#emit('onWorkerStatus', payload, e.data?.device, e.data?.voice)
+        // تمرير حالة المحرك للمكوّن (التهيئة، التنزيل، الجهاز، الخطأ...)
+        this.#emit('onWorkerStatus', payload, e.data?.device, e.data?.voice, e.data)
         if (payload === 'ready') this.#emit('onState', 'ready')
         else if (payload === 'downloading') this.#emit('onState', 'downloading')
         else if (payload === 'synthesizing') this.#emit('onState', 'generating')
+        else if (payload === 'error') this.#emit('onState', 'error')
         break
 
       case 'dl-progress':

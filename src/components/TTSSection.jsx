@@ -118,7 +118,7 @@ export default function TTSSection() {
       }
 
       const queue = new AudioQueue(worker, {
-        onWorkerStatus: (status, device) => {
+        onWorkerStatus: (status, device, voice, data) => {
           if (cancelled) return
           const tr = tRef.current
           if (status === 'initializing') {
@@ -135,6 +135,14 @@ export default function TTSSection() {
             setEngineMsg(tr('tts.engineReady'))
           } else if (status === 'synthesizing') {
             setEngineMsg(tr('tts.generating'))
+          } else if (status === 'error') {
+            // فشل التهيئة أو انتهت المهلة — إلغاء زر التحميل وعرض الخطأ بدل التعليق الدائم
+            setEngineStatus('error')
+            setEngineMsg(
+              data?.code === 'timeout' ? tr('tts.engineTimeout') : (data?.message || tr('tts.engineError'))
+            )
+            setQueueState('idle')
+            setDlProgress(null)
           } else if (status === 'idle') {
             setEngineStatus((s) => (s === 'error' ? s : 'ready'))
             setEngineMsg(tr('tts.engineReady'))
@@ -149,6 +157,10 @@ export default function TTSSection() {
             setDlProgress(null)
             toast.success(tRef.current('tts.stateDone'))
           } else if (state === 'idle') {
+            setDlProgress(null)
+          } else if (state === 'error') {
+            // خطأ من الـ worker — إلغاء أي حالة تحميل/توليد معلقة
+            setQueueState('idle')
             setDlProgress(null)
           }
         },

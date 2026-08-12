@@ -14,10 +14,20 @@ import { DEFAULT_VOICE, isKnownVoice, voiceBaseUrl, isVoiceCachedById } from '..
 // ويُخزَّن في Cache API عبر الاعتراض — يعمل دون إنترنت بعد أول استخدام
 const PIPER_CDN_URL = 'https://cdn.jsdelivr.net/npm/piper-tts-web@1.1.2/dist/piper-tts-web.js'
 
-/** جذر التطبيق — يدعم النشر في مسار فرعي (مثل GitHub Pages) */
+/**
+ * جذر التطبيق — يدعم النشر في مسار فرعي (مثل GitHub Pages).
+ * يعتمد على import.meta.env.BASE_URL (من vite.config) أولاً، مع fallback
+ * لحساب المسار من موقع الـ Worker داخل /assets/ — المتوافق مع base: './'.
+ */
 function appRoot() {
   try {
-    const href = self.location?.href || ''
+    const base = import.meta.env?.BASE_URL
+    const href = self.location?.href || '/'
+    if (base && base !== './') {
+      // base مطلق (مثل /tts-wasm-app/) — يُحسب من أصل الموقع
+      return new URL(base, href).href
+    }
+    // base = './' (إعداد vite.config) — جذر التطبيق = المسار حتى مجلد assets/
     const idx = href.indexOf('/assets/')
     if (idx > -1) return href.slice(0, idx + 1)
     return new URL('.', href).href
@@ -28,8 +38,24 @@ function appRoot() {
 const ROOT = appRoot()
 
 // مسارات ملفات WASM المحلية (يُنسخها vite من node_modules إلى public/)
+// — مسارات مطلقة كاملة (وليست /piper/ نسبية) — متوافقة مع النشر في مسار فرعي
 const ONNX_BASE_PATH = `${ROOT}onnx/` // onnxruntime-web (piper)
 const PHONEMIZE_BASE_PATH = `${ROOT}piper/` // piper_phonemize.wasm + .data
+
+// مهلة تهيئة المحرك: إن لم يستجب خلال 10 ثوانٍ، يُرسل خطأ واضح بدل التعليق الدائم
+const ENGINE_INIT_TIMEOUT_MS = 10000
+const TIMEOUT_MESSAGE = 'انتهت مهلة تهيئة محرك الصوت (10 ثوانٍ) — تحقق من اتصال الإنترنت ثم حاول مجدداً'
+
+/** يلف Promise بمهلة زمنية — يرفض عند انقضاء المهلة بالرسالة المعطاة */
+function withTimeout(promise, ms, message) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms)
+    promise.then(
+      (v) => { clearTimeout(timer); resolve(v) },
+      (e) => { clearTimeout(timer); reject(e) }
+    )
+  })
+}
 
 let piperModule = null
 /** تحميل مكتبة piper-tts-web من CDN (مرة واحدة — يُخزَّن في الكاش عبر الاعتراض) */
@@ -157,20 +183,35 @@ function post(type, payload, extra) {
 /**
  * تدشين المحرك — WASM دائماً (OnnxWebRuntime):
  * ملفات WASM (onnxruntime + phonemize) تُخدم محلياً عبر basePath صريح (أوفلاين).
+ * محمي بمهلة 10 ثوانٍ — إن لم يستجب، يُرسل خطأ للواجهة بدل التعليق الدائم.
  */
 async function ensureEngine() {
   if (engine) return
   post('status', 'initializing')
-  const { PiperWebEngine, OnnxWebRuntime, PhonemizeWebRuntime } = await loadPiper()
-  voiceProvider = new CustomVoiceProvider()
-  const runtimeOpts = { numThreads: 1, basePath: ONNX_BASE_PATH }
-  const phonemizeRuntime = new PhonemizeWebRuntime({ basePath: PHONEMIZE_BASE_PATH })
+  try {
+    const { PiperWebEngine, OnnxWebRuntime, PhonemizeWebRuntime } = await withTimeout(
+      loadPiper(),
+      ENGINE_INIT_TIMEOUT_MS,
+      TIMEOUT_MESSAGE
+    )
+    voiceProvider = new CustomVoiceProvider()
+    const runtimeOpts = { numThreads: 1, basePath: ONNX_BASE_PATH }
+    const phonemizeRuntime = new PhonemizeWebRuntime({ basePath: PHONEMIZE_BASE_PATH })
 
-  engine = new PiperWebEngine({
-    onnxRuntime: new OnnxWebRuntime(runtimeOpts),
-    phonemizeRuntime,
-    voiceProvider,
-  })
+    engine = new PiperWebEngine({
+      onnxRuntime: new OnnxWebRuntime(runtimeOpts),
+      phonemizeRuntime,
+      voiceProvider,
+    })
+  } catch (err) {
+    const message = String(err?.message || err)
+    // تمييز انتهاء المهلة عن فشل التهيئة — الواجهة تترجم حسب اللغة
+    const code = message === TIMEOUT_MESSAGE ? 'timeout' : 'init-failed'
+    // إبلاغ الواجهة فوراً: إلغاء زر التحميل + عرض الخطأ بدل التعليق
+    post('status', 'error', { code, message })
+    post('error', { message })
+    throw err
+  }
 }
 
 /** توليد الصوت لجملة واحدة — يُرجع WAV ArrayBuffer */
@@ -218,10 +259,14 @@ self.onmessage = async (e) => {
   switch (type) {
     case 'LOAD': {
       stopped = false
-      await ensureEngine()
-      // لا يُنزَّل أي صوت هنا — التحميل يحدث عند أول توليد بالصوت المختار (On-Demand)
-      currentVoice = isKnownVoice(payload?.voice) ? payload.voice : DEFAULT_VOICE
-      post('status', 'ready', { device, voice: currentVoice })
+      try {
+        await ensureEngine()
+        // لا يُنزَّل أي صوت هنا — التحميل يحدث عند أول توليد بالصوت المختار (On-Demand)
+        currentVoice = isKnownVoice(payload?.voice) ? payload.voice : DEFAULT_VOICE
+        post('status', 'ready', { device, voice: currentVoice })
+      } catch {
+        // ensureEngine أرسل status: 'error' + error للواجهة — لا خطأ غير معالج
+      }
       break
     }
 
