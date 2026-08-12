@@ -10,9 +10,10 @@
 import { PIPER_CACHE_NAME } from '../utils/modelCache.js'
 import { DEFAULT_VOICE, isKnownVoice, voiceBaseUrl, isVoiceCachedById } from '../utils/voices.js'
 
-// رابط مكتبة piper-tts-web (نفس النسخة المثبتة) — يُحمَّل ديناميكياً عند أول تهيئة
-// ويُخزَّن في Cache API عبر الاعتراض — يعمل دون إنترنت بعد أول استخدام
-const PIPER_CDN_URL = 'https://cdn.jsdelivr.net/npm/piper-tts-web@1.1.2/dist/piper-tts-web.js'
+// ===== استيراد محلي من npm (بدلاً من CDN) =====
+// piper-tts-web تُضمَّن كاملة في حزمة البناء (dist) — لا أي طلب شبكة خارجي.
+// ملاحظة: المكتبة ≈46MB (تتضمن onnxruntime-web) — تُبنى كـ chunk مستقل.
+import { PiperWebEngine, OnnxWebRuntime, PhonemizeWebRuntime } from 'piper-tts-web'
 
 /**
  * جذر التطبيق — يدعم النشر في مسار فرعي (مثل GitHub Pages).
@@ -42,30 +43,7 @@ const ROOT = appRoot()
 const ONNX_BASE_PATH = `${ROOT}onnx/` // onnxruntime-web (piper)
 const PHONEMIZE_BASE_PATH = `${ROOT}piper/` // piper_phonemize.wasm + .data
 
-// مهلة تهيئة المحرك: إن لم يستجب خلال 10 ثوانٍ، يُرسل خطأ واضح بدل التعليق الدائم
-const ENGINE_INIT_TIMEOUT_MS = 10000
-const TIMEOUT_MESSAGE = 'انتهت مهلة تهيئة محرك الصوت (10 ثوانٍ) — تحقق من اتصال الإنترنت ثم حاول مجدداً'
-
-/** يلف Promise بمهلة زمنية — يرفض عند انقضاء المهلة بالرسالة المعطاة */
-function withTimeout(promise, ms, message) {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(message)), ms)
-    promise.then(
-      (v) => { clearTimeout(timer); resolve(v) },
-      (e) => { clearTimeout(timer); reject(e) }
-    )
-  })
-}
-
-let piperModule = null
-/** تحميل مكتبة piper-tts-web من CDN (مرة واحدة — يُخزَّن في الكاش عبر الاعتراض) */
-async function loadPiper() {
-  if (piperModule) return piperModule
-  piperModule = await import(/* @vite-ignore */ PIPER_CDN_URL)
-  return piperModule
-}
-
-// ===== اعتراض fetch: تخزين نماذج الأصوات + مكتبة TTS في Cache API عند أول تنزيل =====
+// ===== اعتراض fetch: تخزين نماذج الأصوات في Cache API عند أول تنزيل =====
 const ORIGINAL_FETCH = self.fetch ? self.fetch.bind(self) : fetch
 
 /** إعلام الواجهة بنسبة تنزيل النموذج (0-100) */
@@ -116,11 +94,10 @@ async function fetchWithProgress(input, init) {
   })
 }
 
-// الأصول القابلة للتخزين المؤقت: نماذج الأصوات من HuggingFace + مكتبة TTS من CDN
+// الأصول القابلة للتخزين المؤقت: نماذج الأصوات من HuggingFace فقط
+// (المكتبة نفسها أصبحت مضمّنة محلياً في الحزمة — لا CDN)
 const CACHEABLE_PREFIXES = [
   'https://huggingface.co/',
-  'https://cdn.jsdelivr.net/',
-  'https://unpkg.com/',
 ]
 
 self.fetch = async (input, init) => {
@@ -189,11 +166,8 @@ async function ensureEngine() {
   if (engine) return
   post('status', 'initializing')
   try {
-    const { PiperWebEngine, OnnxWebRuntime, PhonemizeWebRuntime } = await withTimeout(
-      loadPiper(),
-      ENGINE_INIT_TIMEOUT_MS,
-      TIMEOUT_MESSAGE
-    )
+    // المكتبة مستوردة محلياً من npm — لا تحميل من CDN إطلاقاً.
+    // إنشاء المحرك متزامن (التحميل الفعلي للـ WASM يحدث عند أول توليد).
     voiceProvider = new CustomVoiceProvider()
     const runtimeOpts = { numThreads: 1, basePath: ONNX_BASE_PATH }
     const phonemizeRuntime = new PhonemizeWebRuntime({ basePath: PHONEMIZE_BASE_PATH })
