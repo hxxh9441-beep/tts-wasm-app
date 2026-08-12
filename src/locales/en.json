@@ -1,0 +1,61 @@
+{
+  "securityBadge": "Absolute privacy policy: We collect and store zero audio or text data (Zero-Data Retention)",
+  "hero": {
+    "badge": "Runs entirely on your device",
+    "title": "Text → Speech",
+    "subtitle": "Type text and hear it in a natural voice — generated 100% locally on your device. No internet, no uploads, no tracking.",
+    "ttsBtn": "🔊 Text to Speech"
+  },
+  "sticky": {
+    "home": "Home",
+    "tts": "Text → Speech"
+  },
+  "tts": {
+    "title": "Text to Speech",
+    "subtitle": "Type text and hear it in a natural voice — generated entirely on-device via the Piper engine.",
+    "placeholder": "Type your text here (up to 2000 characters)...",
+    "speak": "🔊 Generate & Play",
+    "stop": "⏹️ Stop",
+    "clear": "Clear",
+    "generating": "Generating audio...",
+    "empty": "Type some text first",
+    "error": "Generation failed",
+    "charCount": "{count} / {max}",
+    "charsRemaining": "{count} characters left",
+    "tooLong": "Text exceeds {max} characters — please shorten it",
+    "speedLabel": "Playback speed",
+    "langAr": "Arabic",
+    "langEn": "English",
+    "voiceLabel": "Voice",
+    "sentencesLabel": "Detected sentences",
+    "engineLoading": "Connecting to service...",
+    "engineDownloading": "Preparing the synthesis service — first time only...",
+    "engineReady": "Synthesis service connected & ready ✅",
+    "engineError": "Service unavailable right now",
+    "engineNotice": "Running in compatibility mode — same quality",
+    "cachedVoice": "Voice saved locally — runs offline ⚡",
+    "statePlaying": "Playing sentence {current} of {total}",
+    "stateGenerating": "Generating sentence {index} of {total}",
+    "stateWaiting": "Waiting for the next sentence...",
+    "stateDone": "Playback complete ✓",
+    "playbackError": "Audio playback failed",
+    "sentenceBadge": "Sentence",
+    "voiceAuto": "Auto — by text language",
+    "voiceKareem": "Kareem — Formal Male",
+    "voiceAmro": "Amro — Youthful Male",
+    "voiceZain": "Zain — Calm Female",
+    "voiceLessac": "Lessac — American English",
+    "voiceCached": "Voice saved locally — works offline ⚡",
+    "voiceWillDownload": "This voice downloads on first use only (~60MB)"
+  },
+  "engine": {
+    "modelsCached": "Voices saved — ready to work offline",
+    "modelsPending": "Voices will load on first use (one time only)"
+  },
+  "lang": {
+    "toggleTitle": "Interface language — Arabic or English"
+  },
+  "toast": {
+    "exported": "Exported ✓"
+  }
+}
