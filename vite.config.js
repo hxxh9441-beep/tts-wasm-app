@@ -97,4 +97,11 @@ export default defineConfig({
     target: 'chrome110',
     sourcemap: false,
   },
+  // ===== إعدادات الـ Worker للـ Bundler =====
+  // format: 'es' — يضمن توليد الـ Worker كـ ES Module متوافق مع type: 'module'
+  // والمسارات النسبية (base: './') — يمنع خطأ "Importing a module script failed"
+  // على GitHub Pages (المسار الفرعي) و Cloudflare Pages.
+  worker: {
+    format: 'es',
+  },
 })
