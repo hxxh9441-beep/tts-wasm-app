@@ -43,7 +43,11 @@
     "noVoices": "No voices available on this device",
     "voicesCount": "voices",
     "pitchLabel": "Pitch",
-    "sentencesHint": "Click any sentence to read it alone"
+    "sentencesHint": "Click any sentence to read it alone",
+    "downloadAudio": "Download Audio 💾",
+    "audioReady": "Audio file ready",
+    "recordingBadge": "Recording audio...",
+    "recordingUnsupported": "Audio download not supported on this browser/device — available on desktop Chrome"
   },
   "engine": {
     "modelsCached": "Voices saved — ready to work offline",

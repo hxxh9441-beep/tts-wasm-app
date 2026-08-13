@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Volume2, Square, Eraser, Gauge, Mic2, AlertTriangle, Languages, Wand2, AudioLines, ChevronDown, Music2, ListOrdered } from 'lucide-react'
+import { Volume2, Square, Eraser, Gauge, Mic2, AlertTriangle, Languages, Wand2, AudioLines, ChevronDown, Music2, ListOrdered, Download } from 'lucide-react'
 import { validateText, detectLang, splitSentences, MAX_TEXT_CHARS } from '../utils/textUtils'
 import { useWebSpeechTTS } from '../hooks/useWebSpeechTTS'
 import { useToast } from './ToastContext'
@@ -30,6 +30,10 @@ export default function TTSSection() {
     pitch,
     setPitch,
     currentIndex,
+    audioUrl,
+    isRecording,
+    recorderSupported,
+    clearAudio,
   } = useWebSpeechTTS()
 
   const supported = typeof window !== 'undefined' && 'speechSynthesis' in window
@@ -39,6 +43,9 @@ export default function TTSSection() {
   const charInfo = useMemo(() => validateText(text), [text])
   const detectedSentences = useMemo(() => splitSentences(text), [text])
 
+  // اسم ملف التنزيل: speech-audio-YYYY-MM-DD.webm
+  const downloadName = `speech-audio-${new Date().toISOString().slice(0, 10)}.webm`
+
   const handleTextChange = (e) => {
     const raw = e.target.value
     if (raw.length > MAX_TEXT_CHARS && !wasOver) {
@@ -47,6 +54,8 @@ export default function TTSSection() {
     } else if (raw.length <= MAX_TEXT_CHARS && wasOver) {
       setWasOver(false)
     }
+    // مسح التنزيل السابق عند تعديل النص
+    if (raw !== text) clearAudio()
     setText(raw.slice(0, MAX_TEXT_CHARS))
   }
 
@@ -243,6 +252,41 @@ export default function TTSSection() {
               </button>
             )}
           </div>
+
+          {/* ===== التنزيل وحالة التسجيل ===== */}
+          {isRecording && (
+            <p className="mt-3 flex items-center gap-2 text-xs text-rose-300 font-semibold">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
+              </span>
+              {t('tts.recordingBadge')}
+            </p>
+          )}
+
+          {audioUrl && (
+            <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3 py-2">
+              <span className="text-xs font-semibold text-emerald-200 flex items-center gap-1.5">
+                <AudioLines size={13} />
+                {t('tts.audioReady')}
+              </span>
+              <a
+                href={audioUrl}
+                download={downloadName}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-emerald-500 text-slate-950 hover:bg-emerald-400 active:scale-95 transition-all"
+              >
+                <Download size={13} />
+                {t('tts.downloadAudio')}
+              </a>
+            </div>
+          )}
+
+          {!recorderSupported && (
+            <p className="mt-2 text-[10px] text-slate-600 flex items-center gap-1">
+              <AlertTriangle size={10} />
+              {t('tts.recordingUnsupported')}
+            </p>
+          )}
 
           {!supported && (
             <p className="mt-4 text-sm text-rose-400 flex items-center gap-2">
