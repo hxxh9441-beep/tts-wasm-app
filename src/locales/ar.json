@@ -42,7 +42,8 @@
     "unsupported": "متصفحك لا يدعم خاصية قراءة النص (Web Speech) — جرّب Chrome أو Safari",
     "noVoices": "لا توجد أصوات متاحة على هذا الجهاز",
     "voicesCount": "صوت",
-    "pitchLabel": "النبرة"
+    "pitchLabel": "النبرة",
+    "sentencesHint": "اضغط على أي جملة لقراءتها منفردة"
   },
   "engine": {
     "modelsCached": "الأصوات محفوظة — جاهز للعمل دون إنترنت",

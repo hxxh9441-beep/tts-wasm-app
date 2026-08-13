@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Volume2, Square, Eraser, Gauge, Mic2, AlertTriangle, Languages, Wand2, AudioLines, ChevronDown, Music2 } from 'lucide-react'
-import { validateText, detectLang, MAX_TEXT_CHARS } from '../utils/textUtils'
+import { Volume2, Square, Eraser, Gauge, Mic2, AlertTriangle, Languages, Wand2, AudioLines, ChevronDown, Music2, ListOrdered } from 'lucide-react'
+import { validateText, detectLang, splitSentences, MAX_TEXT_CHARS } from '../utils/textUtils'
 import { useWebSpeechTTS } from '../hooks/useWebSpeechTTS'
 import { useToast } from './ToastContext'
 
@@ -22,12 +22,14 @@ export default function TTSSection() {
     selectedVoice,
     setSelectedVoice,
     speak,
+    speakSentence,
     stop,
     isPlaying,
     rate,
     setRate,
     pitch,
     setPitch,
+    currentIndex,
   } = useWebSpeechTTS()
 
   const supported = typeof window !== 'undefined' && 'speechSynthesis' in window
@@ -35,6 +37,7 @@ export default function TTSSection() {
   // ====== اشتقاقات ======
   const lang = useMemo(() => detectLang(text), [text])
   const charInfo = useMemo(() => validateText(text), [text])
+  const detectedSentences = useMemo(() => splitSentences(text), [text])
 
   const handleTextChange = (e) => {
     const raw = e.target.value
@@ -246,6 +249,42 @@ export default function TTSSection() {
               <AlertTriangle size={14} />
               {t('tts.unsupported')}
             </p>
+          )}
+
+          {/* ===== قائمة الجمل المكتشفة مع التتبع ===== */}
+          {detectedSentences.length > 0 && (
+            <div className="mt-5">
+              <p className="text-[11px] font-semibold text-slate-500 mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                <ListOrdered size={12} />
+                {t('tts.sentencesLabel')} · {detectedSentences.length}
+              </p>
+              <div className="max-h-44 overflow-y-auto rounded-xl border border-slate-800/80 divide-y divide-slate-800/60">
+                {detectedSentences.map((s, i) => {
+                  const isCurrent = isPlaying && i === currentIndex
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => speakSentence(i)}
+                      disabled={!supported}
+                      className={`w-full text-start flex gap-3 px-3 py-2 text-sm transition-colors ${
+                        isCurrent
+                          ? 'bg-cyan-500/15 border-r-2 border-cyan-400 text-cyan-100'
+                          : 'hover:bg-slate-800/40 text-slate-300'
+                      }`}
+                    >
+                      <span className="shrink-0 text-[11px] text-cyan-300/80 font-mono pt-0.5 tabular-nums w-5 text-center">
+                        {i + 1}
+                      </span>
+                      <span className="flex-1 min-w-0">{s}</span>
+                      {isCurrent && (
+                        <AudioLines size={13} className="shrink-0 mt-1 text-cyan-300 animate-pulse" />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="mt-2 text-[10px] text-slate-600">{t('tts.sentencesHint')}</p>
+            </div>
           )}
         </div>
       </div>

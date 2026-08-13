@@ -42,7 +42,8 @@
     "unsupported": "Your browser does not support Web Speech — try Chrome or Safari",
     "noVoices": "No voices available on this device",
     "voicesCount": "voices",
-    "pitchLabel": "Pitch"
+    "pitchLabel": "Pitch",
+    "sentencesHint": "Click any sentence to read it alone"
   },
   "engine": {
     "modelsCached": "Voices saved — ready to work offline",
