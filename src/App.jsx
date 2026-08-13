@@ -1,15 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Volume2, Home, ShieldCheck, Languages, Database, CloudCog, Loader2 } from 'lucide-react'
+import { Volume2, Home, ShieldCheck, Languages } from 'lucide-react'
 import HeroSection from './components/HeroSection.jsx'
 import TTSSection from './components/TTSSection.jsx'
 import { ToastProvider } from './components/ToastContext'
 import { setLang } from './i18n'
-import { checkModelCache } from './utils/modelCache'
 
 /**
- * تطبيق تحويل النص إلى كلام (TTS Only) — Piper عبر WASM:
- * Hero بملء الشاشة ← قسم التوليد مع Sticky Header، خفيف وسريع.
+ * تطبيق تحويل النص إلى كلام (TTS Only) — Web Speech API الأصلي:
+ * Hero بملء الشاشة ← قسم التوليد مع Sticky Header — خفيف جداً (صفر نماذج).
  */
 export default function App() {
   const { t, i18n } = useTranslation()
@@ -17,18 +16,6 @@ export default function App() {
   const toggleLangTo = (lang) => setLang(lang)
   const [showHeader, setShowHeader] = useState(false)
   const [active, setActive] = useState(null)
-  const [cacheState, setCacheState] = useState('checking') // checking | cached | pending
-
-  // فحص الأصوات المخزنة عند فتح الموقع — تُحمَّل محلياً دون إنترنت إن وُجدت
-  useEffect(() => {
-    let cancelled = false
-    checkModelCache().then((r) => {
-      if (!cancelled) setCacheState(r.anyCached ? 'cached' : 'pending')
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   // إظهار الهيدر عند الخروج من الـ Hero
   useEffect(() => {
@@ -65,27 +52,6 @@ export default function App() {
           <ShieldCheck size={13} className="shrink-0 text-emerald-300" />
           <span>{t('securityBadge')}</span>
         </p>
-        {/* شريط حالة الأصوات المحلية */}
-        <div
-          className={`border-t px-4 py-1 text-center text-[10px] sm:text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-colors ${
-            cacheState === 'cached'
-              ? 'bg-cyan-950/40 border-cyan-500/10 text-cyan-200/90'
-              : cacheState === 'pending'
-                ? 'bg-amber-950/30 border-amber-500/10 text-amber-200/80'
-                : 'bg-slate-950/40 border-slate-700/20 text-slate-400'
-          }`}
-        >
-          {cacheState === 'checking' && <Loader2 size={11} className="animate-spin" />}
-          {cacheState === 'cached' && <Database size={11} />}
-          {cacheState === 'pending' && <CloudCog size={11} />}
-          <span>
-            {cacheState === 'checking'
-              ? '...'
-              : cacheState === 'cached'
-                ? t('engine.modelsCached')
-                : t('engine.modelsPending')}
-          </span>
-        </div>
       </div>
 
       {/* ===== Sticky Header (يظهر عند التمرير من الـ Hero) ===== */}
